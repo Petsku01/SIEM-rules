@@ -1,0 +1,52 @@
+Multi but optimized
+Done for school 2023
+
+
+Data Models: Ensure Authentication and Network_Traffic data models are accelerated in your Splunk instance (configured via Settings > Data Models). If not, revert to raw indexes (index=security sourcetype=auth, etc.), but expect slower performance.
+Thresholds: Tune event_count > 5, bytes > avg_bytes * 3, and span=5m to your baseline activity.
+Rare User Agents: Replace IN (rare user_agent) with a subsearch (e.g., | inputlookup rare_user_agents.csv) or a precomputed list from a scheduled search.
+Threat Intel: Populate threat_intel lookup with your IOCs (e.g., CSV with ip, threat_name).
+
+
+Scheduled Search: Run every 15 minutes with an alert for risk_score > 50.
+Dashboard: Add to a SOC dashboard with a time picker (e.g., last 24 hours) and filterable risk_score.
+Testing: Validate on a small time range (e.g., -1h@h) to ensure data model coverage and threshold accuracy.
+
+| tstats count as event_count, 
+        values(Authentication.user) as username, 
+        values(Authentication.dest) as dest_host, 
+        values(Network_Traffic.user_agent) as user_agent, 
+        values(Network_Traffic.bytes) as bytes, 
+        values(Network_Traffic.dest_ip) as dest_ip 
+    from datamodel=Authentication, datamodel=Network_Traffic 
+    where Authentication.action="failure" OR Network_Traffic.direction="outbound" 
+    by _time, Authentication.src_ip, Network_Traffic.src_ip span=5m 
+| eval src_ip = coalesce(Authentication.src_ip, Network_Traffic.src_ip) 
+| fields - Authentication.src_ip, Network_Traffic.src_ip 
+| eval stage = case(
+    Authentication.action="failure" AND event_count > 5, "lateral",
+    Network_Traffic.direction="outbound", "exfil",
+    isnotnull(user_agent), "recon",
+    1=1, null()) 
+| eventstats avg(bytes) as avg_bytes by src_ip 
+| eval bytes_deviation = if(bytes > avg_bytes * 3 AND stage="exfil", "high", "normal") 
+| where (stage="lateral" AND event_count > 5) OR 
+        (stage="exfil" AND bytes_deviation="high") OR 
+        (stage="recon" AND user_agent IN (rare user_agent)) 
+| stats dc(stage) as stage_count, 
+        values(stage) as stages, 
+        values(user_agent) as recon_user_agent, 
+        values(dest_host) as lateral_hosts, 
+        values(event_count) as lateral_attempts, 
+        values(dest_ip) as exfil_dest, 
+        values(bytes) as exfil_bytes 
+    by src_ip 
+| where stage_count >= 2 
+| lookup threat_intel ip AS src_ip OUTPUT threat_name 
+| eval risk_score = case(
+    stage_count=3, 90,
+    stage_count=2 AND isnotnull(threat_name), 75,
+    stage_count=2, 50,
+    1=1, 0) 
+| table src_ip, stages, stage_count, recon_user_agent, lateral_hosts, lateral_attempts, exfil_dest, exfil_bytes, threat_name, risk_score 
+| sort -risk_score
