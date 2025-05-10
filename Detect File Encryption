@@ -1,0 +1,5 @@
+[DetectMassFileModifications]
+search = index=* sourcetype=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational EventCode=11 file_name="*.encrypted" OR file_name="*.locked" | stats count by host, file_name | where count > 50
+schedule = */5 * * * *  # Run every 5 minutes
+action.email.to = soc@yourcompany.com
+action.email.subject = "Ransomware Alert: Mass File Modifications Detected on $host$"
