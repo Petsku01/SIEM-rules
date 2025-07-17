@@ -1,6 +1,6 @@
 title: Suspicious PowerShell Command Execution
 id: 123e4567-e89b-12d3-a456-426614174000
-description: Detects PowerShell executions with suspicious parameters like encoded commands or hidden window execution.
+description: Detects PowerShell executions with suspicious parameters for example encoded commands or hidden window execution.
 status: experimental
 author: -pk
 date: 2025/07/10
