@@ -1,0 +1,25 @@
+title: Unauthorized Windows Registry Modification
+id: 78901234-56ab-78cd-90ef-1234567890ab
+description: Detects modifications to sensitive registry keys that could indicate persistence or privilege escalation.
+status: stable
+author: -pk
+date: 2025/05/17
+logsource:
+  category: registry
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+      - '\CurrentVersion\Run'
+      - '\CurrentVersion\RunOnce'
+      - '\CurrentVersion\Image File Execution Options'
+  condition: selection
+fields:
+  - TargetObject
+  - Details
+falsepositives:
+  - Legitimate software installations
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1547.001
