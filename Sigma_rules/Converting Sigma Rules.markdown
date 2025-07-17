@@ -1,4 +1,4 @@
-# Converting Sigma Rules to SIEMs: A Guide
+# Converting Sigma Rules to SIEMs: A Guide for Python
 
 ## Introduction
 
