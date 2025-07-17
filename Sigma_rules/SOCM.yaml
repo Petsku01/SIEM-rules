@@ -1,0 +1,26 @@
+title: Suspicious Outbound Connection to Malicious IP
+id: 456789ab-cdef-1234-5678-901234567890
+description: Detects network connections to IP addresses known to be associated with malicious activities.
+status: experimental
+author: -pk
+date: 2025/05/17
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    DestinationIp|in:
+      - '192.168.1.100'  # Replace with known malicious IPs
+      - '10.0.0.138'
+    Initiated: 'true'
+  condition: selection
+fields:
+  - DestinationIp
+  - DestinationPort
+  - Image
+falsepositives:
+  - Misconfigured applications
+level: high
+tags:
+  - attack.command_and_control
+  - attack.t1071
