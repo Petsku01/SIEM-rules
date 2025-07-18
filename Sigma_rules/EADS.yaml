@@ -1,0 +1,28 @@
+title: Execution from NTFS Alternate Data Stream
+id: 123e4567-e89b-12d3-a456-426614174001
+description: Detects process creation where the command line indicates execution from an NTFS alternate data stream (ADS), which is often used to hide malicious actions.
+status: experimental
+author: -pk
+date: 2025-05-10
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+    CommandLine|contains: ':'
+  condition: selection
+fields:
+  - CommandLine
+  - Image
+  - ParentImage
+falsepositives:
+  - Legitimate use of ADS for execution, which is not common
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.t1564.004
