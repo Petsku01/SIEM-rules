@@ -1,5 +1,0 @@
-[DetectSuspiciousProcesses]
-search = index=* sourcetype=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational EventCode=1 (Image="*\\cmd.exe" OR Image="*\\powershell.exe") CommandLine="*encrypt*" | table _time, host, Image, CommandLine, ParentImage
-schedule = */10 * * * *  # Run every 10 minutes
-action.email.to = soc@yourcompany.com
-action.email.subject = "Ransomware Alert: Suspicious Process on $host$"
