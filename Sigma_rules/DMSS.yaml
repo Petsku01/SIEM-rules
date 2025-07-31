@@ -1,0 +1,79 @@
+title: Detect Malicious Security Software
+id: 7b8e9c3a-4f2d-4e9a-b7c3-f8a9e2b3c1d7
+status: experimental
+description: Detects process creation events indicative of malicious security software (e.g., rogue antivirus) based on suspicious executable names, command-line arguments, and execution context. Requires Windows Audit Process Creation to be enabled.
+author: -pk
+date: 2025/07/25
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    EventID: 4688
+    Image|endswith:
+      - '\antivirus.exe'
+      - '\securityscan.exe'
+      - '\protectservice.exe'
+      - '\winsecurity.exe'
+      - '\sysguard.exe'
+      - '\threatscanner.exe'
+      - '\virusprotector.exe'
+      - '\malwarecleaner.exe'
+      - '\systemguard.exe'
+      - '\safeguard.exe'
+    CommandLine|contains:
+      - 'scan'
+      - 'protect'
+      - 'security'
+      - 'clean'
+      - 'remove-threat'
+      - 'update'
+      - 'install'
+      - 'fix'
+    suspicious_context:
+      ParentImage|endswith:
+        - '\cmd.exe'
+        - '\powershell.exe'
+        - '\mshta.exe'
+      Image|contains:
+        - '\AppData\'
+        - '\Temp\'
+        - '\Users\Public\'
+  filter_legitimate:
+    Image|re: '(?i)^C:\\Program Files(\\x86)?\\.*'
+    Image|contains:
+      - '\Windows Defender\MsMpEng.exe'
+      - '\McAfee\Agent\macompatsvc.exe'
+      - '\Symantec\Symantec Endpoint Protection\smc.exe'
+      - '\AVG\avgsvc.exe'
+      - '\Avast\AvastSvc.exe'
+      - '\Kaspersky\avp.exe'
+      - '\Bitdefender\bdagent.exe'
+      - '\Norton\NS.exe'
+      - '\Trend Micro\tmlisten.exe'
+      - '\Webroot\WRSA.exe'
+  condition: selection and suspicious_context and not filter_legitimate
+fields:
+  - Image
+  - CommandLine
+  - ParentImage
+  - ParentCommandLine
+  - User
+falsepositives:
+  - Legitimate but lesser-known security software with similar naming (e.g., open-source or niche antivirus tools)
+  - IT automation scripts or third-party optimization tools using security-related terms
+  - Custom enterprise software installed in non-standard paths
+level: medium
+tags:
+  - attack.execution
+  - attack.t1204  # User Execution
+  - attack.t1566  # Phishing
+  - attack.t1112  # Modify Registry
+references:
+  - https://attack.mitre.org/techniques/T1204/
+  - https://attack.mitre.org/techniques/T1566/
+  - https://attack.mitre.org/techniques/T1112/
+  - https://github.com/SigmaHQ/sigma
+  - https://blog.es3n1n.eu/posts/how-i-ruined-my-vacation/
+  -https://www.huntress.com/blog/defendnot-detecting-malicious-security-product-bypass-techniques
+
